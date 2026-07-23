@@ -500,6 +500,28 @@
   .video-mini-controls input[type="range"]{
     width: 70px; accent-color: #fff; cursor:pointer;
   }
+  .video-frame.mini-player{
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 300px;
+    aspect-ratio: 16/9;
+    z-index: 500;
+    box-shadow: 0 20px 50px -10px rgba(18,20,26,0.45);
+    transition: all .3s ease;
+  }
+  .mini-player-close{
+    position:absolute; top:8px; right:8px;
+    width:26px; height:26px; border-radius:50%;
+    background: rgba(18,20,26,0.6); color:#fff;
+    border:none; cursor:pointer; z-index:6;
+    display:none; align-items:center; justify-content:center;
+    font-size:14px;
+  }
+  .video-frame.mini-player .mini-player-close{ display:flex; }
+  @media (max-width: 640px){
+    .video-frame.mini-player{ width: 200px; }
+  }
 
   /* ---------- REVIEWS ---------- */
   .reviews-grid{
@@ -763,8 +785,9 @@
         <h2>Hear it from me directly.</h2>
         <p>A short video on how I approach a new ad account.</p>
       </div>
-      <div class="video-frame">
-        <video id="intro-video" preload="metadata" playsinline style="width:100%; height:100%; object-fit:cover; border-radius:var(--radius);">
+      <div class="video-frame" id="video-frame">
+        <button class="mini-player-close" id="mini-close" aria-label="Close mini player">✕</button>
+        <video id="intro-video" preload="metadata" playsinline poster="https://cdn.shopify.com/s/files/1/0947/2645/5681/files/Screenshot_2026-07-23_at_8.34.37_PM.png?v=1784831723" style="width:100%; height:100%; object-fit:cover; border-radius:var(--radius);">
           <source src="https://cdn.shopify.com/videos/c/o/v/f9a7fdfd5f77440892a1a732487d8bee.mp4" type="video/mp4">
           Your browser doesn't support embedded video.
         </video>
@@ -784,19 +807,27 @@
           const muteBtn = document.getElementById('video-mute-btn');
           const volumeSlider = document.getElementById('video-volume');
           const fsBtn = document.getElementById('video-fullscreen-btn');
-          const frame = video.closest('.video-frame');
+          const frame = document.getElementById('video-frame');
+          const miniClose = document.getElementById('mini-close');
 
-          overlay.addEventListener('click', () => {
-            video.play();
-          });
+          function togglePlay(){
+            if (video.paused) video.play();
+            else video.pause();
+          }
+
+          overlay.addEventListener('click', togglePlay);
+          video.addEventListener('click', togglePlay);
+
           video.addEventListener('play', () => overlay.classList.add('hidden'));
           video.addEventListener('pause', () => overlay.classList.remove('hidden'));
           video.addEventListener('ended', () => overlay.classList.remove('hidden'));
 
-          muteBtn.addEventListener('click', () => {
+          muteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             video.muted = !video.muted;
             muteBtn.textContent = video.muted ? '🔇' : '🔊';
           });
+          volumeSlider.addEventListener('click', (e) => e.stopPropagation());
           volumeSlider.addEventListener('input', () => {
             video.volume = volumeSlider.value;
             if (video.volume === 0) {
@@ -807,9 +838,32 @@
               muteBtn.textContent = '🔊';
             }
           });
-          fsBtn.addEventListener('click', () => {
+          fsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (frame.requestFullscreen) frame.requestFullscreen();
             else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+          });
+
+          // Shrink to a mini floating player once scrolled out of view while playing
+          let dismissed = false;
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (dismissed) return;
+              if (!entry.isIntersecting && !video.paused) {
+                frame.classList.add('mini-player');
+              } else if (entry.isIntersecting) {
+                frame.classList.remove('mini-player');
+              }
+            });
+          }, { threshold: 0.15 });
+          observer.observe(frame);
+
+          miniClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            video.pause();
+            frame.classList.remove('mini-player');
+            dismissed = true;
+            setTimeout(() => { dismissed = false; }, 800);
           });
         })();
       </script>
