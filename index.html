@@ -471,6 +471,35 @@
     font-size: 13px;
     color: var(--ink-soft);
   }
+  .video-overlay-btn{
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(18,20,26,0.15);
+    cursor:pointer;
+    transition: background .2s ease;
+    z-index: 3;
+  }
+  .video-overlay-btn:hover{ background: rgba(18,20,26,0.25); }
+  .video-overlay-btn .play-btn{ transition: transform .2s ease; }
+  .video-overlay-btn:hover .play-btn{ transform: scale(1.08); }
+  .video-overlay-btn.hidden{ display:none; }
+  .video-mini-controls{
+    position:absolute; bottom:16px; right:16px;
+    display:flex; align-items:center; gap:10px;
+    background: rgba(18,20,26,0.55);
+    backdrop-filter: blur(10px);
+    padding: 8px 12px;
+    border-radius: 999px;
+    z-index: 4;
+  }
+  .video-mini-controls button{
+    background:none; border:none; color:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 16px; padding: 4px;
+  }
+  .video-mini-controls input[type="range"]{
+    width: 70px; accent-color: #fff; cursor:pointer;
+  }
 
   /* ---------- REVIEWS ---------- */
   .reviews-grid{
@@ -732,11 +761,60 @@
       <div class="section-head">
         <span class="kicker">INTRO</span>
         <h2>Hear it from me directly.</h2>
-        <p>A short video on how I approach a new ad account — swap this placeholder for your own recording.</p>
+        <p>A short video on how I approach a new ad account.</p>
       </div>
       <div class="video-frame">
-        <div class="play-btn">▶</div>
-        <div class="caption">[ VIDEO PLACEHOLDER — 16:9, replace with embed or file ]</div>
+        <video id="intro-video" preload="metadata" playsinline style="width:100%; height:100%; object-fit:cover; border-radius:var(--radius);">
+          <source src="https://cdn.shopify.com/videos/c/o/v/f9a7fdfd5f77440892a1a732487d8bee.mp4" type="video/mp4">
+          Your browser doesn't support embedded video.
+        </video>
+        <div class="video-overlay-btn" id="video-overlay">
+          <div class="play-btn">▶</div>
+        </div>
+        <div class="video-mini-controls">
+          <button id="video-mute-btn" aria-label="Mute/unmute">🔊</button>
+          <input type="range" id="video-volume" min="0" max="1" step="0.05" value="1" aria-label="Volume">
+          <button id="video-fullscreen-btn" aria-label="Fullscreen">⛶</button>
+        </div>
+      </div>
+      <script>
+        (function(){
+          const video = document.getElementById('intro-video');
+          const overlay = document.getElementById('video-overlay');
+          const muteBtn = document.getElementById('video-mute-btn');
+          const volumeSlider = document.getElementById('video-volume');
+          const fsBtn = document.getElementById('video-fullscreen-btn');
+          const frame = video.closest('.video-frame');
+
+          overlay.addEventListener('click', () => {
+            video.play();
+          });
+          video.addEventListener('play', () => overlay.classList.add('hidden'));
+          video.addEventListener('pause', () => overlay.classList.remove('hidden'));
+          video.addEventListener('ended', () => overlay.classList.remove('hidden'));
+
+          muteBtn.addEventListener('click', () => {
+            video.muted = !video.muted;
+            muteBtn.textContent = video.muted ? '🔇' : '🔊';
+          });
+          volumeSlider.addEventListener('input', () => {
+            video.volume = volumeSlider.value;
+            if (video.volume === 0) {
+              video.muted = true;
+              muteBtn.textContent = '🔇';
+            } else if (video.muted) {
+              video.muted = false;
+              muteBtn.textContent = '🔊';
+            }
+          });
+          fsBtn.addEventListener('click', () => {
+            if (frame.requestFullscreen) frame.requestFullscreen();
+            else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+          });
+        })();
+      </script>
+      <div style="text-align:center; margin-top:28px;">
+        <a href="mailto:Travpersonalemail@gmail.com" class="btn btn-primary">Email me →</a>
       </div>
     </div>
   </section>
