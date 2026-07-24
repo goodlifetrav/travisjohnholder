@@ -463,7 +463,6 @@
     background:
       linear-gradient(160deg, rgba(255,255,255,0.5), rgba(255,255,255,0.15)),
       var(--bg-2);
-    backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow);
     display:flex;
@@ -495,11 +494,12 @@
     cursor:pointer;
     transition: background .2s ease;
     z-index: 3;
+    pointer-events: auto;
   }
   .video-overlay-btn:hover{ background: rgba(18,20,26,0.25); }
   .video-overlay-btn .play-btn{ transition: transform .2s ease; }
   .video-overlay-btn:hover .play-btn{ transform: scale(1.08); }
-  .video-overlay-btn.hidden{ display:none; }
+  .video-overlay-btn.is-playing{ display:none; }
   .video-mini-controls{
     position:absolute; bottom:0; left:0; right:0;
     display:flex; align-items:center; gap:12px;
@@ -516,6 +516,7 @@
     width: 90px; accent-color: #fff; cursor:pointer;
   }
   .video-mini-controls .spacer{ flex:1; }
+  .video-frame-docked{ position:absolute; inset:0; }
   .video-frame.mini-player{
     position: fixed;
     bottom: 24px;
@@ -524,7 +525,11 @@
     aspect-ratio: 16/9;
     z-index: 500;
     box-shadow: 0 20px 50px -10px rgba(18,20,26,0.45);
-    transition: all .3s ease;
+    transition: box-shadow .2s ease;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #0d0e12;
+    will-change: transform;
   }
   .mini-player-close{
     position:absolute; top:8px; right:8px;
@@ -801,7 +806,8 @@
         <h2>Hear it from me directly.</h2>
         <p>A short video on how I approach a new ad account.</p>
       </div>
-      <div class="video-frame" id="video-frame">
+      <div id="video-wrapper" style="position:relative; aspect-ratio:16/9;">
+      <div class="video-frame video-frame-docked" id="video-frame">
         <button class="mini-player-close" id="mini-close" aria-label="Close mini player">✕</button>
         <video id="intro-video" preload="metadata" playsinline poster="https://cdn.shopify.com/s/files/1/0947/2645/5681/files/Screenshot_2026-07-23_at_8.34.37_PM.png?v=1784831723" style="width:100%; height:100%; object-fit:cover; border-radius:var(--radius);">
           <source src="https://cdn.shopify.com/videos/c/o/v/f9a7fdfd5f77440892a1a732487d8bee.mp4" type="video/mp4">
@@ -817,6 +823,7 @@
           <button id="video-fullscreen-btn" aria-label="Fullscreen">⛶</button>
         </div>
       </div>
+      </div>
       <script>
         (function(){
           const video = document.getElementById('intro-video');
@@ -828,16 +835,19 @@
           const miniClose = document.getElementById('mini-close');
 
           function togglePlay(){
-            if (video.paused) video.play();
-            else video.pause();
+            if (video.paused) {
+              video.play().catch(err => console.warn('Video play blocked:', err));
+            } else {
+              video.pause();
+            }
           }
 
           overlay.addEventListener('click', togglePlay);
-          video.addEventListener('click', togglePlay);
 
-          video.addEventListener('play', () => overlay.classList.add('hidden'));
-          video.addEventListener('pause', () => overlay.classList.remove('hidden'));
-          video.addEventListener('ended', () => overlay.classList.remove('hidden'));
+          video.addEventListener('play', () => overlay.classList.add('is-playing'));
+          video.addEventListener('ended', () => overlay.classList.remove('is-playing'));
+          video.addEventListener('stalled', () => console.warn('Video stalled'));
+          video.addEventListener('error', () => console.warn('Video error', video.error));
 
           muteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -862,6 +872,7 @@
           });
 
           // Shrink to a mini floating player once scrolled out of view while playing
+          const wrapper = document.getElementById('video-wrapper');
           let dismissed = false;
           const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -872,8 +883,8 @@
                 frame.classList.remove('mini-player');
               }
             });
-          }, { threshold: 0.15 });
-          observer.observe(frame);
+          }, { threshold: 0 });
+          observer.observe(wrapper);
 
           miniClose.addEventListener('click', (e) => {
             e.stopPropagation();
